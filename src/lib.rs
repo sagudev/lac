@@ -9,6 +9,7 @@ use crate::processor::get_header;
 use crate::processor::process_flac;
 use crate::processor::process_wav;
 
+/// Place bin from ram to temp folder
 pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
     let tmp = std::env::temp_dir().join(bin::BIN_EXE);
     fs::write(tmp.clone(), bin::BIN_FILE)?;
@@ -23,13 +24,14 @@ pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
     Ok(tmp)
 }
 
+/// Remove bin from tmp folder
 pub fn remove_bin() -> Result<(), Box<dyn Error>> {
     let tmp = std::env::temp_dir().join(bin::BIN_EXE);
     fs::remove_file(tmp)?;
     Ok(())
 }
 
-// do recursive loop in path for FLACs and WAVs and log in files
+/// do recursive loop in path for FLACs and WAVs and do logging
 // firstly we need to read logs if they exist
 // then recalc hashes
 //
