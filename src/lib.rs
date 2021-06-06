@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use crate::processor::process_flac;
 use crate::processor::process_wav;
 
-
 pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
     let tmp = std::env::temp_dir().join(bin::BIN_EXE);
     fs::write(tmp.clone(), bin::BIN_FILE)?;

@@ -31,4 +31,3 @@ impl Display for File {
         writeln!(f, "Result: {}", self.result.as_ref().unwrap())
     }
 }
-
