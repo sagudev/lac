@@ -5,9 +5,10 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::processor::get_header;
-use crate::processor::process_flac;
-use crate::processor::process_wav;
+use log::LOG;
+use processor::Processor;
+
+use crate::log::get_header;
 
 /// Place bin from ram to temp folder
 pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
@@ -36,22 +37,23 @@ pub fn remove_bin() -> Result<(), Box<dyn Error>> {
 // then recalc hashes
 //
 pub fn mach(dir: PathBuf, bin: &PathBuf) -> Result<(), Box<dyn Error>> {
-    if let Ok(ff) = fs::read(dir.join("LAC.log")) {
-        // parse
+    let log_old = if let Ok(ff) = fs::read(dir.join("LAC.log")) {
+        Some(LOG::from(&bin, &ff)?)
     } else {
-        println!("INFO: LAC.log does not exist in {:?}", dir);
-    }
-    for path in fs::read_dir(dir)? {
+        None
+    };
+    let mut procesor = Processor::new(log_old, LOG::new(&bin)?, bin.clone());
+    for path in fs::read_dir(&dir)? {
         let path = path?;
         if path.metadata()?.is_file() {
             if let Some(ext) = path.path().extension() {
                 let ext = ext.to_str().unwrap().to_ascii_lowercase();
                 match ext.as_str() {
                     "flac" => {
-                        println!("{}", process_flac(path.path(), bin)?);
+                        procesor.process_flac(path.path())?;
                     }
                     "wav" => {
-                        println!("{}", process_wav(path.path(), bin)?);
+                        procesor.process_wav(path.path())?;
                     }
                     _ => { /* Do nothing */ }
                 }
@@ -60,5 +62,6 @@ pub fn mach(dir: PathBuf, bin: &PathBuf) -> Result<(), Box<dyn Error>> {
             mach(path.path(), &bin)?;
         }
     }
+    fs::write(dir.join("LAC.log"), format!("{}", procesor.log))?;
     Ok(())
 }
