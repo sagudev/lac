@@ -3,8 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::log::{File, LAC};
-
 use sha2::Digest;
+
 /// Crates hash of file
 fn hash(v: &[u8]) -> String {
     let mut hasher = sha2::Sha256::new();
