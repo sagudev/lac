@@ -32,9 +32,9 @@ impl Display for File {
     }
 }
 
-struct LOG {
-    header: String,
-    data: HashMap<PathBuf, File>,
+pub struct LOG {
+    pub header: String,
+    pub data: HashMap<PathBuf, File>,
 }
 
 /* impl LOG {
