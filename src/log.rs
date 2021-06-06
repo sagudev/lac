@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 pub enum LAC {
     Clean,
@@ -31,3 +31,14 @@ impl Display for File {
         writeln!(f, "Result: {}", self.result.as_ref().unwrap())
     }
 }
+
+struct LOG {
+    header: String,
+    data: HashMap<PathBuf, File>,
+}
+
+/* impl LOG {
+    fn set_header() -> {
+
+    }
+} */

@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
+use crate::processor::get_header;
 use crate::processor::process_flac;
 use crate::processor::process_wav;
 
@@ -14,10 +15,11 @@ pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
     if cfg!(not(target_os = "windows")) {
         std::process::Command::new("chmod")
             .arg("+x")
-            .arg(tmp.clone())
+            .arg(&tmp)
             .output()
             .expect("failed to execute chmod +x");
     }
+    println!("Using builtin {}", get_header(&tmp)?);
     Ok(tmp)
 }
 

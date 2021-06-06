@@ -14,6 +14,13 @@ fn hash(v: &[u8]) -> String {
     hex::encode(hasher.finalize().iter().map(|x| *x).collect::<Vec<u8>>())
 }
 
+/// Get header
+pub fn get_header(bin: &PathBuf) -> Result<String, Box<dyn Error>> {
+    let out = std::process::Command::new(bin).output()?;
+    let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
+    Ok(output.lines().next().unwrap().to_owned())
+}
+
 /// Runs LAC and parse result
 fn process(path: &PathBuf, bin: &PathBuf) -> Result<Result<LAC, String>, Box<dyn Error>> {
     let out = std::process::Command::new(bin).arg(path).output()?;
