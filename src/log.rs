@@ -1,9 +1,7 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::Display;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug)]
 pub enum Lac {
