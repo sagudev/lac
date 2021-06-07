@@ -1,37 +1,42 @@
-use std::{collections::HashMap, error::Error, fmt::Display, path::PathBuf};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 #[derive(Clone, Debug)]
-pub enum LAC {
+pub enum Lac {
     Clean,
     Transcoded,
     Upscaled,
     Upsampled,
 }
 
-impl Display for LAC {
+impl Display for Lac {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LAC::Clean => write!(f, "Clean"),
-            LAC::Transcoded => write!(f, "Transcoded"),
-            LAC::Upscaled => write!(f, "Upscaled"),
-            LAC::Upsampled => write!(f, "Upsampled"),
+            Lac::Clean => write!(f, "Clean"),
+            Lac::Transcoded => write!(f, "Transcoded"),
+            Lac::Upscaled => write!(f, "Upscaled"),
+            Lac::Upsampled => write!(f, "Upsampled"),
         }
     }
 }
 
-impl core::str::FromStr for LAC {
+impl core::str::FromStr for Lac {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.to_ascii_lowercase();
         if s.contains("clean") {
-            Ok(LAC::Clean)
+            Ok(Lac::Clean)
         } else if s.contains("transcoded") {
-            Ok(LAC::Transcoded)
+            Ok(Lac::Transcoded)
         } else if s.contains("upscaled") {
-            Ok(LAC::Upscaled)
+            Ok(Lac::Upscaled)
         } else if s.contains("upsampled") {
-            Ok(LAC::Upsampled)
+            Ok(Lac::Upsampled)
         } else {
             Err(())
         }
@@ -42,7 +47,7 @@ impl core::str::FromStr for LAC {
 pub struct File {
     pub path: PathBuf,
     pub hash: String,
-    pub result: Result<LAC, String>,
+    pub result: Result<Lac, String>,
 }
 
 impl File {
@@ -51,19 +56,19 @@ impl File {
             path: s1
                 .split(": ")
                 .nth(1)
-                .expect("Wrong format of LAC.log")
+                .expect("Wrong format of Lac.log")
                 .trim()
                 .into(),
             hash: s2
                 .split(": ")
                 .nth(1)
-                .expect("Wrong format of LAC.log")
+                .expect("Wrong format of Lac.log")
                 .trim()
                 .into(),
             result: Ok(s3
                 .split(": ")
                 .nth(1)
-                .expect("Wrong format of LAC.log")
+                .expect("Wrong format of Lac.log")
                 .trim()
                 .parse()
                 .unwrap()),
@@ -80,24 +85,24 @@ impl Display for File {
 }
 
 /// Get header
-pub fn get_header(bin: &PathBuf) -> Result<String, Box<dyn Error>> {
+pub fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
     let out = std::process::Command::new(bin).output()?;
     let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
     Ok(output.lines().next().unwrap().to_owned())
 }
 
 #[derive(Clone, Debug)]
-pub struct LOG {
+pub struct Log {
     pub header: String,
     /// folder: vec of FILEs
     pub data: HashMap<PathBuf, Vec<File>>,
 }
 
-impl Display for LOG {
+impl Display for Log {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}", self.header)?;
-        writeln!(f, "")?;
-        for (p, v) in &self.data {
+        writeln!(f)?;
+        for v in self.data.values() {
             for file in v {
                 writeln!(f, "{}", file)?;
             }
@@ -116,8 +121,8 @@ fn insert_or_update(m: &mut HashMap<PathBuf, Vec<File>>, f: File) {
     }
 }
 
-impl LOG {
-    pub fn new(bin: &PathBuf) -> Result<Self, Box<dyn Error>> {
+impl Log {
+    pub fn new(bin: &Path) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             header: get_header(bin).unwrap(),
             data: HashMap::new(),
@@ -126,7 +131,7 @@ impl LOG {
     pub fn insert_or_update(&mut self, f: File) {
         insert_or_update(&mut self.data, f)
     }
-    pub fn from(bin: &PathBuf, v: &[u8]) -> Result<Self, Box<dyn Error>> {
+    pub fn from(bin: &Path, v: &[u8]) -> Result<Self, Box<dyn Error>> {
         let raw_data = &String::from_utf8_lossy(v)
             .lines()
             .filter(|&x| !x.is_empty())

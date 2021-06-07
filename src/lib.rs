@@ -3,9 +3,10 @@ mod log;
 mod processor;
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
-use log::LOG;
+use log::Log;
 use processor::Processor;
 
 use crate::log::get_header;
@@ -32,17 +33,17 @@ pub fn remove_bin() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// do recursive loop in path for FLACs and WAVs and do logging
+/// do recursive loop in path for FLacs and WAVs and do logging
 // firstly we need to read logs if they exist
 // then recalc hashes
 //
-pub fn mach(dir: PathBuf, bin: &PathBuf) -> Result<(), Box<dyn Error>> {
-    let log_old = if let Ok(ff) = fs::read(dir.join("LAC.log")) {
-        Some(LOG::from(&bin, &ff)?)
+pub fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
+    let log_old = if let Ok(ff) = fs::read(dir.join("Lac.log")) {
+        Some(Log::from(&bin, &ff)?)
     } else {
         None
     };
-    let mut procesor = Processor::new(log_old, LOG::new(&bin)?, bin.clone());
+    let mut procesor = Processor::new(log_old, Log::new(&bin)?, bin.to_owned());
     for path in fs::read_dir(&dir)? {
         let path = path?;
         if path.metadata()?.is_file() {
@@ -62,6 +63,6 @@ pub fn mach(dir: PathBuf, bin: &PathBuf) -> Result<(), Box<dyn Error>> {
             mach(path.path(), &bin)?;
         }
     }
-    fs::write(dir.join("LAC.log"), format!("{}", procesor.log))?;
+    fs::write(dir.join("Lac.log"), format!("{}", procesor.log))?;
     Ok(())
 }

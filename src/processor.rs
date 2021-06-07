@@ -1,9 +1,10 @@
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
-use crate::log::LOG;
-use crate::log::{File, LAC};
+use crate::log::Log;
+use crate::log::{File, Lac};
 use sha2::Digest;
 
 /// Crates hash of file
@@ -12,12 +13,12 @@ fn hash(v: &[u8]) -> String {
     // write input message
     hasher.update(v);
     // read hash digest and consume hasher
-    hex::encode(hasher.finalize().iter().map(|x| *x).collect::<Vec<u8>>())
+    hex::encode(hasher.finalize().iter().copied().collect::<Vec<u8>>())
 }
 
 /// https://github.com/ruuda/claxon/blob/master/examples/decode_simple.rs#L18
-fn decode_file(fname: &PathBuf) -> PathBuf {
-    let mut reader = claxon::FlacReader::open(fname).expect("failed to open FLAC stream");
+fn decode_file(fname: &Path) -> PathBuf {
+    let mut reader = claxon::FlacReader::open(fname).expect("failed to open FLac stream");
 
     let spec = hound::WavSpec {
         channels: reader.streaminfo().channels as u16,
@@ -31,7 +32,7 @@ fn decode_file(fname: &PathBuf) -> PathBuf {
     let mut wav_writer = opt_wav_writer.expect("failed to create wav file");
 
     for opt_sample in reader.samples() {
-        let sample = opt_sample.expect("failed to decode FLAC stream");
+        let sample = opt_sample.expect("failed to decode FLac stream");
         wav_writer
             .write_sample(sample)
             .expect("failed to write wav file");
@@ -42,26 +43,23 @@ fn decode_file(fname: &PathBuf) -> PathBuf {
 
 #[derive(Debug)]
 pub struct Processor {
-    old_log: Option<LOG>,
-    pub log: LOG,
+    old_log: Option<Log>,
+    pub log: Log,
     bin: PathBuf,
 }
 
 impl Processor {
-    pub fn new(old_log: Option<LOG>, log: LOG, bin: PathBuf) -> Self {
+    pub fn new(old_log: Option<Log>, log: Log, bin: PathBuf) -> Self {
         Self { old_log, log, bin }
     }
 
     /// checks if recalc is neede based on hash
     /// make dupe of old in new
-    fn recalc_dupe(&mut self, path: &PathBuf, hash: &str) -> bool {
+    fn recalc_dupe(&mut self, path: &Path, hash: &str) -> bool {
         if let Some(old) = &self.old_log {
             let k = path.parent().unwrap();
-            println!("{:#?}", old);
             if old.data.contains_key(k) {
-                println!("2");
                 for f in old.data.get(k).unwrap() {
-                    println!("{}", f);
                     if f.path == *path && f.hash == *hash {
                         // data is the same, copy
                         self.log.insert_or_update(f.clone());
@@ -73,18 +71,18 @@ impl Processor {
         true
     }
 
-    /// Runs LAC and parse result
-    fn process(&self, path: &PathBuf) -> Result<Result<LAC, String>, Box<dyn Error>> {
+    /// Runs Lac and parse result
+    fn process(&self, path: &Path) -> Result<Result<Lac, String>, Box<dyn Error>> {
         let out = std::process::Command::new(&self.bin).arg(path).output()?;
         let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
         if output.contains("clean") {
-            Ok(Ok(LAC::Clean))
+            Ok(Ok(Lac::Clean))
         } else if output.contains("transcoded") {
-            Ok(Ok(LAC::Transcoded))
+            Ok(Ok(Lac::Transcoded))
         } else if output.contains("upscaled") {
-            Ok(Ok(LAC::Upscaled))
+            Ok(Ok(Lac::Upscaled))
         } else if output.contains("upsampled") {
-            Ok(Ok(LAC::Upsampled))
+            Ok(Ok(Lac::Upsampled))
         } else {
             Ok(Err(format!("{:#?}", out)))
         }
@@ -101,7 +99,7 @@ impl Processor {
         Ok(())
     }
 
-    /// Process FLAC file
+    /// Process FLac file
     pub fn process_flac(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
         let f = fs::read(&path)?;
         let hash = hash(&f);

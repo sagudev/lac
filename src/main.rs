@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
     let bin = make_bin()?;
-    // if path is file run real LAC
+    // if path is file run real Lac
     if path.is_file() {
         std::process::Command::new(bin).arg(path).spawn()?;
     } else {
