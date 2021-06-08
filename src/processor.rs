@@ -49,8 +49,20 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn new(old_log: Option<Log>, log: Log, bin: PathBuf) -> Self {
-        Self { old_log, log, bin }
+    pub fn new(bin: PathBuf) -> Self {
+        Self {
+            old_log: None,
+            log: Log::new(),
+            bin,
+        }
+    }
+
+    pub fn append_old(&mut self, log: Log) {
+        if let Some(old_log) = &mut self.old_log {
+            old_log.append(log)
+        } else {
+            self.old_log = Some(log)
+        }
     }
 
     /// checks if recalc is neede based on hash

@@ -9,7 +9,12 @@ use std::path::PathBuf;
 use log::Log;
 use processor::Processor;
 
-use crate::log::get_header;
+/// Get header
+fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
+    let out = std::process::Command::new(bin).output()?;
+    let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
+    Ok(output.lines().next().unwrap().to_owned())
+}
 
 /// Place bin from ram to temp folder
 pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
@@ -33,17 +38,20 @@ pub fn remove_bin() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+pub fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
+    let mut procesor = Processor::new(bin.to_owned());
+    looper(&mut procesor, &get_header(bin)?, dir)?;
+    Ok(())
+}
+
 /// do recursive loop in path for FLacs and WAVs and do logging
 // firstly we need to read logs if they exist
 // then recalc hashes
 //
-pub fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
-    let log_old = if let Ok(ff) = fs::read(dir.join("Lac.log")) {
-        Some(Log::from(&bin, &ff)?)
-    } else {
-        None
-    };
-    let mut procesor = Processor::new(log_old, Log::new(&bin)?, bin.to_owned());
+fn looper(procesor: &mut Processor, header: &str, dir: PathBuf) -> Result<(), Box<dyn Error>> {
+    if let Ok(ff) = fs::read(dir.join("LAC.log")) {
+        procesor.append_old(Log::from(&ff)?)
+    }
     for path in fs::read_dir(&dir)? {
         let path = path?;
         if path.metadata()?.is_file() {
@@ -60,9 +68,16 @@ pub fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            mach(path.path(), &bin)?;
+            looper(procesor, header, path.path())?;
         }
     }
-    fs::write(dir.join("Lac.log"), format!("{}", procesor.log))?;
+    fs::write(
+        dir.join("LAC.log"),
+        format!(
+            "{}\n\n{}",
+            header,
+            procesor.log.relevant(dir.to_str().unwrap())
+        ),
+    )?;
     Ok(())
 }

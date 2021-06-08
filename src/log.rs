@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub enum Lac {
@@ -82,24 +82,14 @@ impl Display for File {
     }
 }
 
-/// Get header
-pub fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
-    let out = std::process::Command::new(bin).output()?;
-    let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
-    Ok(output.lines().next().unwrap().to_owned())
-}
-
 #[derive(Clone, Debug)]
 pub struct Log {
-    pub header: String,
     /// folder: vec of FILEs
     pub data: HashMap<PathBuf, Vec<File>>,
 }
 
 impl Display for Log {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.header)?;
-        writeln!(f)?;
         for v in self.data.values() {
             for file in v {
                 writeln!(f, "{}", file)?;
@@ -120,16 +110,27 @@ fn insert_or_update(m: &mut HashMap<PathBuf, Vec<File>>, f: File) {
 }
 
 impl Log {
-    pub fn new(bin: &Path) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            header: get_header(bin).unwrap(),
+    pub fn new() -> Self {
+        Self {
             data: HashMap::new(),
-        })
+        }
+    }
+    pub fn append(&mut self, log: Log) {
+        self.data.extend(log.data)
     }
     pub fn insert_or_update(&mut self, f: File) {
         insert_or_update(&mut self.data, f)
     }
-    pub fn from(bin: &Path, v: &[u8]) -> Result<Self, Box<dyn Error>> {
+    pub fn relevant(&self, dir: &str) -> Log {
+        let mut log = Log::new();
+        for (k, v) in &self.data {
+            if k.to_str().unwrap().contains(dir) {
+                log.data.insert(k.clone(), v.clone());
+            }
+        }
+        log
+    }
+    pub fn from(v: &[u8]) -> Result<Self, Box<dyn Error>> {
         let raw_data = &String::from_utf8_lossy(v)
             .lines()
             .filter(|&x| !x.is_empty())
@@ -143,9 +144,6 @@ impl Log {
                 File::from(&raw_data[i * 3], &raw_data[i * 3 + 1], &raw_data[i * 3 + 2]),
             );
         }
-        Ok(Self {
-            header: get_header(bin).unwrap(),
-            data,
-        })
+        Ok(Self { data })
     }
 }
