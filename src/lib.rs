@@ -17,7 +17,7 @@ fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
 }
 
 /// Place bin from ram to temp folder
-pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
+pub fn make_bin(jobs: usize) -> Result<PathBuf, Box<dyn Error>> {
     let tmp = std::env::temp_dir().join(bin::BIN_EXE);
     fs::write(tmp.clone(), bin::BIN_FILE)?;
     if cfg!(not(target_os = "windows")) {
@@ -27,7 +27,7 @@ pub fn make_bin() -> Result<PathBuf, Box<dyn Error>> {
             .output()
             .expect("failed to execute chmod +x");
     }
-    println!("Using builtin {}", get_header(&tmp)?);
+    println!("Using builtin {}\nthat should be able to span on {} thread(s)", get_header(&tmp)?, jobs);
     Ok(tmp)
 }
 
@@ -38,7 +38,7 @@ pub fn remove_bin() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
+pub fn mach(dir: PathBuf, jobs: usize, bin: &Path) -> Result<(), Box<dyn Error>> {
     let mut procesor = Processor::new(bin.to_owned());
     looper(&mut procesor, &get_header(bin)?, dir)?;
     Ok(())
