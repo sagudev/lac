@@ -51,7 +51,11 @@ pub struct Processor {
 
 impl Processor {
     pub fn new(bin: PathBuf, header: String) -> Self {
-        Self { old_log: None, bin, header }
+        Self {
+            old_log: None,
+            bin,
+            header,
+        }
     }
 
     pub fn append_old(&mut self, log: Log) {

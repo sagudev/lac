@@ -51,7 +51,10 @@ pub async fn remove_bin() -> Result<(), Box<dyn Error>> {
 }
 
 pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
-    let procesor = Arc::new(RwLock::new(Processor::new(bin.to_owned(),get_header(&bin).await?)));
+    let procesor = Arc::new(RwLock::new(Processor::new(
+        bin.to_owned(),
+        get_header(&bin).await?,
+    )));
     looper(procesor, dir).await?;
     Ok(())
 }
@@ -60,10 +63,7 @@ pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
 // firstly we need to read logs if they exist
 // then recalc hashes
 #[async_recursion::async_recursion]
-async fn looper(
-    procesor: Arc<RwLock<Processor>>,
-    dir: PathBuf,
-) -> Result<Log, Box<dyn Error>> {
+async fn looper(procesor: Arc<RwLock<Processor>>, dir: PathBuf) -> Result<Log, Box<dyn Error>> {
     if let Ok(ff) = fs::read(dir.join("LAC.log")).await {
         procesor.write().await.append_old(Log::from(&ff)?)
     }
@@ -79,10 +79,24 @@ async fn looper(
                     let ext = ext.to_str().unwrap().to_ascii_lowercase();
                     match ext.as_str() {
                         "flac" => {
-                            return FnF::File(procesor.read().await.process_flac(path.path()).await.unwrap());
+                            return FnF::File(
+                                procesor
+                                    .read()
+                                    .await
+                                    .process_flac(path.path())
+                                    .await
+                                    .unwrap(),
+                            );
                         }
                         "wav" => {
-                            return FnF::File(procesor.read().await.process_wav(path.path()).await.unwrap());
+                            return FnF::File(
+                                procesor
+                                    .read()
+                                    .await
+                                    .process_wav(path.path())
+                                    .await
+                                    .unwrap(),
+                            );
                         }
                         _ => { /* Do nothing */ }
                     }
@@ -92,12 +106,12 @@ async fn looper(
             }
             FnF::None
         }));
-    };
+    }
     while let Some(item) = tasks.next().await {
         match item {
             FnF::File(f) => log.insert(f),
             FnF::Folder(f) => log.append(f),
-            FnF::None => {/* Do nothing */},
+            FnF::None => { /* Do nothing */ }
         }
     }
     fs::write(

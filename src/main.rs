@@ -16,7 +16,7 @@ struct Args {
     path: PathBuf,
 
     /// number of jobs
-    #[argh(option, short = 'j', default = "num_cpus::get() - 2")]
+    #[argh(option, short = 'j', default = "num_cpus::get() / 4")]
     jobs: usize,
 }
 
@@ -30,6 +30,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .arg(args.path)
             .spawn()?;
     } else {
+        std::env::set_var("ASYNC_STD_THREAD_COUNT", args.jobs.to_string());
         mach(args.path, &bin).await?;
     }
     remove_bin().await?;
