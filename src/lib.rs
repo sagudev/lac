@@ -5,13 +5,16 @@ use async_std::fs;
 use async_std::path::Path;
 use async_std::path::PathBuf;
 use async_std::prelude::*;
+use async_std::sync::RwLock;
 use std::error::Error;
+use std::sync::Arc;
 
 use log::Log;
 use processor::Processor;
 
 use crate::log::FnF;
 use async_std::task;
+use futures::stream::FuturesUnordered;
 
 /// Get header
 async fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
@@ -48,8 +51,8 @@ pub async fn remove_bin() -> Result<(), Box<dyn Error>> {
 }
 
 pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
-    let mut procesor = Processor::new(bin.to_owned());
-    looper(&mut procesor, &get_header(&bin).await?, dir).await?;
+    let procesor = Arc::new(RwLock::new(Processor::new(bin.to_owned(),get_header(&bin).await?)));
+    looper(procesor, dir).await?;
     Ok(())
 }
 
@@ -58,42 +61,50 @@ pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Box<dyn Error>> {
 // then recalc hashes
 #[async_recursion::async_recursion]
 async fn looper(
-    procesor: &mut Processor,
-    header: &str,
+    procesor: Arc<RwLock<Processor>>,
     dir: PathBuf,
 ) -> Result<Log, Box<dyn Error>> {
     if let Ok(ff) = fs::read(dir.join("LAC.log")).await {
-        procesor.append_old(Log::from(&ff)?)
+        procesor.write().await.append_old(Log::from(&ff)?)
     }
     let mut log = Log::new();
+    let mut tasks = FuturesUnordered::new();
     let mut entries = fs::read_dir(&dir).await?;
     while let Some(path) = entries.next().await {
-        let child = task::spawn(async {
-            let path = path?;
-            if path.metadata().await?.is_file() {
+        let procesor = procesor.clone();
+        tasks.push(task::spawn(async move {
+            let path = path.unwrap();
+            if path.metadata().await.unwrap().is_file() {
                 if let Some(ext) = path.path().extension() {
-                    let ext = ext.to_str()?.to_ascii_lowercase();
+                    let ext = ext.to_str().unwrap().to_ascii_lowercase();
                     match ext.as_str() {
                         "flac" => {
-                            return Ok(FnF::File(procesor.process_flac(path.path()).await?));
+                            return FnF::File(procesor.read().await.process_flac(path.path()).await.unwrap());
                         }
                         "wav" => {
-                            return Ok(FnF::File(procesor.process_wav(path.path()).await?));
+                            return FnF::File(procesor.read().await.process_wav(path.path()).await.unwrap());
                         }
                         _ => { /* Do nothing */ }
                     }
                 }
             } else {
-                return Ok(FnF::Folder(looper(procesor, header, path.path()).await?));
+                return FnF::Folder(looper(procesor, path.path()).await.unwrap());
             }
-            return Ok::<FnF, Box<dyn Error>>(FnF::None);
-        });
+            FnF::None
+        }));
     };
+    while let Some(item) = tasks.next().await {
+        match item {
+            FnF::File(f) => log.insert(f),
+            FnF::Folder(f) => log.append(f),
+            FnF::None => {/* Do nothing */},
+        }
+    }
     fs::write(
         dir.join("LAC.log"),
         format!(
             "{}\n\n{}",
-            header,
+            procesor.read().await.header,
             log.relevant(dir.to_str().unwrap())
         ),
     )

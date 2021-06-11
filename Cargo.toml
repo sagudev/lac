@@ -14,6 +14,7 @@ claxon = "0.4"
 argh = "0.1"
 num_cpus = "1.13"
 async-recursion = "0.3"
+futures = "0.3"
 
 [dependencies.async-std]
 version = "1.9"

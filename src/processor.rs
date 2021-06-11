@@ -45,11 +45,13 @@ fn decode_file(fname: &Path) -> PathBuf {
 pub struct Processor {
     old_log: Option<Log>,
     bin: PathBuf,
+    /// Storage for header as it has same lifetime
+    pub header: String,
 }
 
 impl Processor {
-    pub fn new(bin: PathBuf) -> Self {
-        Self { old_log: None, bin }
+    pub fn new(bin: PathBuf, header: String) -> Self {
+        Self { old_log: None, bin, header }
     }
 
     pub fn append_old(&mut self, log: Log) {
@@ -61,14 +63,14 @@ impl Processor {
     }
 
     /// checks if we alredy have data and return it (if)
-    fn get_dupe(&mut self, path: &Path, hash: &str) -> Option<File> {
+    fn get_dupe(&self, path: &Path, hash: &str) -> Option<File> {
         if let Some(old) = &self.old_log {
             let k = path.parent().unwrap();
             if old.data.contains_key(k) {
                 for f in old.data.get(k).unwrap() {
                     if f.path == *path && f.hash == *hash {
                         // data is the same, copy
-                        return Some(*f);
+                        return Some(f.clone());
                     }
                 }
             }
@@ -94,7 +96,7 @@ impl Processor {
     }
 
     /// Process WAV file
-    pub async fn process_wav(&mut self, path: PathBuf) -> Result<File, Box<dyn Error>> {
+    pub async fn process_wav(&self, path: PathBuf) -> Result<File, Box<dyn Error>> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
@@ -106,7 +108,7 @@ impl Processor {
     }
 
     /// Process FLac file
-    pub async fn process_flac(&mut self, path: PathBuf) -> Result<File, Box<dyn Error>> {
+    pub async fn process_flac(&self, path: PathBuf) -> Result<File, Box<dyn Error>> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
