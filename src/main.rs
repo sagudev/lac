@@ -1,7 +1,7 @@
+use async_std::path::PathBuf;
 use lac::{mach, make_bin, remove_bin};
 use std::env;
 use std::error::Error;
-use async_std::path::PathBuf;
 
 use argh::FromArgs;
 
@@ -9,7 +9,10 @@ use argh::FromArgs;
 /// A command with positional arguments.
 struct Args {
     /// file path
-    #[argh(positional, default = "PathBuf::from(env::current_dir().unwrap().to_str().unwrap())")]
+    #[argh(
+        positional,
+        default = "PathBuf::from(env::current_dir().unwrap().to_str().unwrap())"
+    )]
     path: PathBuf,
 
     /// number of jobs
@@ -23,9 +26,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bin = make_bin(args.jobs).await?;
     // if path is file run real Lac
     if args.path.is_file().await {
-        async_std::process::Command::new(bin).arg(args.path).spawn()?;
+        async_std::process::Command::new(bin)
+            .arg(args.path)
+            .spawn()?;
     } else {
-        mach(args.path, args.jobs, &bin).await?;
+        mach(args.path, &bin).await?;
     }
     remove_bin().await?;
     Ok(())

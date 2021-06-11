@@ -4,8 +4,8 @@ mod processor;
 use async_std::fs;
 use async_std::path::Path;
 use async_std::path::PathBuf;
-use std::error::Error;
 use async_std::prelude::*;
+use std::error::Error;
 
 use log::Log;
 use processor::Processor;
