@@ -10,6 +10,9 @@ use std::error::Error;
 use log::Log;
 use processor::Processor;
 
+use crate::log::FnF;
+use async_std::task;
+
 /// Get header
 async fn get_header(bin: &Path) -> Result<String, Box<dyn Error>> {
     let out = async_std::process::Command::new(bin).output().await?;
@@ -58,39 +61,42 @@ async fn looper(
     procesor: &mut Processor,
     header: &str,
     dir: PathBuf,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<Log, Box<dyn Error>> {
     if let Ok(ff) = fs::read(dir.join("LAC.log")).await {
         procesor.append_old(Log::from(&ff)?)
     }
-
+    let mut log = Log::new();
     let mut entries = fs::read_dir(&dir).await?;
     while let Some(path) = entries.next().await {
-        let path = path?;
-        if path.metadata().await?.is_file() {
-            if let Some(ext) = path.path().extension() {
-                let ext = ext.to_str().unwrap().to_ascii_lowercase();
-                match ext.as_str() {
-                    "flac" => {
-                        procesor.process_flac(path.path()).await?;
+        let child = task::spawn(async {
+            let path = path?;
+            if path.metadata().await?.is_file() {
+                if let Some(ext) = path.path().extension() {
+                    let ext = ext.to_str()?.to_ascii_lowercase();
+                    match ext.as_str() {
+                        "flac" => {
+                            return Ok(FnF::File(procesor.process_flac(path.path()).await?));
+                        }
+                        "wav" => {
+                            return Ok(FnF::File(procesor.process_wav(path.path()).await?));
+                        }
+                        _ => { /* Do nothing */ }
                     }
-                    "wav" => {
-                        procesor.process_wav(path.path()).await?;
-                    }
-                    _ => { /* Do nothing */ }
                 }
+            } else {
+                return Ok(FnF::Folder(looper(procesor, header, path.path()).await?));
             }
-        } else {
-            looper(procesor, header, path.path()).await?;
-        }
-    }
+            return Ok::<FnF, Box<dyn Error>>(FnF::None);
+        });
+    };
     fs::write(
         dir.join("LAC.log"),
         format!(
             "{}\n\n{}",
             header,
-            procesor.log.relevant(dir.to_str().unwrap())
+            log.relevant(dir.to_str().unwrap())
         ),
     )
     .await?;
-    Ok(())
+    Ok(log)
 }

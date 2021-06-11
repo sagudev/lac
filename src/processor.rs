@@ -44,17 +44,12 @@ fn decode_file(fname: &Path) -> PathBuf {
 #[derive(Debug)]
 pub struct Processor {
     old_log: Option<Log>,
-    pub log: Log,
     bin: PathBuf,
 }
 
 impl Processor {
     pub fn new(bin: PathBuf) -> Self {
-        Self {
-            old_log: None,
-            log: Log::new(),
-            bin,
-        }
+        Self { old_log: None, bin }
     }
 
     pub fn append_old(&mut self, log: Log) {
@@ -65,22 +60,20 @@ impl Processor {
         }
     }
 
-    /// checks if recalc is neede based on hash
-    /// make dupe of old in new
-    fn recalc_dupe(&mut self, path: &Path, hash: &str) -> bool {
+    /// checks if we alredy have data and return it (if)
+    fn get_dupe(&mut self, path: &Path, hash: &str) -> Option<File> {
         if let Some(old) = &self.old_log {
             let k = path.parent().unwrap();
             if old.data.contains_key(k) {
                 for f in old.data.get(k).unwrap() {
                     if f.path == *path && f.hash == *hash {
                         // data is the same, copy
-                        self.log.insert_or_update(f.clone());
-                        return false;
+                        return Some(*f);
                     }
                 }
             }
         }
-        true
+        None
     }
 
     /// Runs Lac and parse result
@@ -101,26 +94,28 @@ impl Processor {
     }
 
     /// Process WAV file
-    pub async fn process_wav(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
+    pub async fn process_wav(&mut self, path: PathBuf) -> Result<File, Box<dyn Error>> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
-        if self.recalc_dupe(&path, &hash) {
+        if let Some(file) = self.get_dupe(&path, &hash) {
+            return Ok(file);
+        } else {
             let result = self.process(&path)?;
-            self.log.insert_or_update(File { path, hash, result })
+            Ok(File { path, hash, result })
         }
-        Ok(())
     }
 
     /// Process FLac file
-    pub async fn process_flac(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
+    pub async fn process_flac(&mut self, path: PathBuf) -> Result<File, Box<dyn Error>> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
-        if self.recalc_dupe(&path, &hash) {
+        if let Some(file) = self.get_dupe(&path, &hash) {
+            return Ok(file);
+        } else {
             let waw = decode_file(&path);
             let result = self.process(&waw)?;
             fs::remove_file(waw).await?;
-            self.log.insert_or_update(File { path, hash, result })
+            Ok(File { path, hash, result })
         }
-        Ok(())
     }
 }

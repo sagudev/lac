@@ -118,7 +118,8 @@ impl Log {
     pub fn append(&mut self, log: Log) {
         self.data.extend(log.data)
     }
-    pub fn insert_or_update(&mut self, f: File) {
+    /// it actually do insert or update
+    pub fn insert(&mut self, f: File) {
         insert_or_update(&mut self.data, f)
     }
     pub fn relevant(&self, dir: &str) -> Log {
@@ -146,4 +147,11 @@ impl Log {
         }
         Ok(Self { data })
     }
+}
+
+/// fILE & Folder
+pub enum FnF {
+    File(File),
+    Folder(Log),
+    None,
 }
