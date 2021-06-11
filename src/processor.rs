@@ -1,7 +1,7 @@
+use async_std::fs;
+use async_std::path::Path;
+use async_std::path::PathBuf;
 use std::error::Error;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
 
 use crate::log::Log;
 use crate::log::{File, Lac};
@@ -101,8 +101,8 @@ impl Processor {
     }
 
     /// Process WAV file
-    pub fn process_wav(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
-        let f = fs::read(&path)?;
+    pub async fn process_wav(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
+        let f = fs::read(&path).await?;
         let hash = hash(&f);
         if self.recalc_dupe(&path, &hash) {
             let result = self.process(&path)?;
@@ -112,13 +112,13 @@ impl Processor {
     }
 
     /// Process FLac file
-    pub fn process_flac(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
-        let f = fs::read(&path)?;
+    pub async fn process_flac(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
+        let f = fs::read(&path).await?;
         let hash = hash(&f);
         if self.recalc_dupe(&path, &hash) {
             let waw = decode_file(&path);
             let result = self.process(&waw)?;
-            fs::remove_file(waw)?;
+            fs::remove_file(waw).await?;
             self.log.insert_or_update(File { path, hash, result })
         }
         Ok(())

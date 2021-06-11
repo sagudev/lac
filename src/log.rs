@@ -1,7 +1,7 @@
+use async_std::path::PathBuf;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
-use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub enum Lac {
