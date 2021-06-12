@@ -18,7 +18,7 @@ fn hash(v: &[u8]) -> String {
 
 /// https://github.com/ruuda/claxon/blob/master/examples/decode_simple.rs#L18
 fn decode_file(fname: &Path) -> Result<PathBuf, Error> {
-    let mut reader = claxon::FlacReader::open(fname).expect("failed to open FLac stream");
+    let mut reader = claxon::FlacReader::open(fname)?;
 
     let spec = hound::WavSpec {
         channels: reader.streaminfo().channels as u16,
@@ -28,8 +28,8 @@ fn decode_file(fname: &Path) -> Result<PathBuf, Error> {
     };
 
     let fname_wav = fname.with_extension("wav");
-    let opt_wav_writer = hound::WavWriter::create(&fname_wav, spec);
-    let mut wav_writer = opt_wav_writer?;
+    let opt_wav_writer = hound::WavWriter::create(&fname_wav, spec)?;
+    let mut wav_writer = opt_wav_writer;
 
     for opt_sample in reader.samples() {
         let sample = opt_sample?;
