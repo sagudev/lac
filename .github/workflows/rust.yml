@@ -2,8 +2,6 @@ name: Rust
 
 on:
   push:
-    tags-ignore:
-      - "v*"
   pull_request:
 
 env:
