@@ -1,8 +1,11 @@
 use async_std::path::PathBuf;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt::Display;
 
+/// Boxed (std) Error trait that is thread safe (needs also Send and Sync trait)
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+
+/// Results of a LAC
 #[derive(Clone, Debug)]
 pub enum Lac {
     Clean,
@@ -41,10 +44,14 @@ impl core::str::FromStr for Lac {
     }
 }
 
+/// Represents one file entery in log
 #[derive(Clone, Debug)]
 pub struct File {
+    /// Path to file
     pub path: PathBuf,
+    /// SHA256 hash of file
     pub hash: String,
+    /// Result of check or Err(output of program)
     pub result: Result<Lac, String>,
 }
 
@@ -82,6 +89,8 @@ impl Display for File {
     }
 }
 
+/// Represents log
+/// WARNING: Header!!!
 #[derive(Clone, Debug)]
 pub struct Log {
     /// folder: vec of FILEs
@@ -115,13 +124,18 @@ impl Log {
             data: HashMap::new(),
         }
     }
+
+    /// Append from other log
     pub fn append(&mut self, log: Log) {
         self.data.extend(log.data)
     }
+
     /// it actually do insert or update
     pub fn insert(&mut self, f: File) {
         insert_or_update(&mut self.data, f)
     }
+
+    /// Creates new log from relevant enteries
     pub fn relevant(&self, dir: &str) -> Log {
         let mut log = Log::new();
         for (k, v) in &self.data {
@@ -131,7 +145,8 @@ impl Log {
         }
         log
     }
-    pub fn from(v: &[u8]) -> Result<Self, Box<dyn Error>> {
+
+    pub fn from(v: &[u8]) -> Result<Self, Error> {
         let raw_data = &String::from_utf8_lossy(v)
             .lines()
             .filter(|&x| !x.is_empty())

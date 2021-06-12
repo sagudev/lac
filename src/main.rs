@@ -1,7 +1,8 @@
 use async_std::path::PathBuf;
+use async_std::task;
+use lac::Error;
 use lac::{mach, make_bin, remove_bin};
 use std::env;
-use std::error::Error;
 
 use argh::FromArgs;
 
@@ -20,9 +21,8 @@ struct Args {
     jobs: usize,
 }
 
-#[async_std::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let args: Args = argh::from_env();
+//#[async_std::main]
+async fn amain(args: Args) -> Result<(), Error> {
     let bin = make_bin(args.jobs).await?;
     // if path is file run real Lac
     if args.path.is_file().await {
@@ -30,9 +30,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .arg(args.path)
             .spawn()?;
     } else {
-        std::env::set_var("ASYNC_STD_THREAD_COUNT", args.jobs.to_string());
         mach(args.path, &bin).await?;
     }
     remove_bin().await?;
     Ok(())
+}
+
+fn main() -> Result<(), Error> {
+    let args: Args = argh::from_env();
+    // cores needs to be set before
+    std::env::set_var("ASYNC_STD_THREAD_COUNT", args.jobs.to_string());
+    task::block_on(amain(args))
 }

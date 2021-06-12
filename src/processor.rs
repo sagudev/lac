@@ -1,8 +1,8 @@
 use async_std::fs;
 use async_std::path::Path;
 use async_std::path::PathBuf;
-use std::error::Error;
 
+use crate::log::Error;
 use crate::log::Log;
 use crate::log::{File, Lac};
 use sha2::Digest;
@@ -83,7 +83,7 @@ impl Processor {
     }
 
     /// Runs Lac and parse result
-    fn process(&self, path: &Path) -> Result<Result<Lac, String>, Box<dyn Error>> {
+    fn process(&self, path: &Path) -> Result<Result<Lac, String>, Error> {
         let out = std::process::Command::new(&self.bin).arg(path).output()?;
         let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
         if output.contains("clean") {
@@ -100,7 +100,7 @@ impl Processor {
     }
 
     /// Process WAV file
-    pub async fn process_wav(&self, path: PathBuf) -> Result<File, Box<dyn Error>> {
+    pub async fn process_wav(&self, path: PathBuf) -> Result<File, Error> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
@@ -112,7 +112,7 @@ impl Processor {
     }
 
     /// Process FLac file
-    pub async fn process_flac(&self, path: PathBuf) -> Result<File, Box<dyn Error>> {
+    pub async fn process_flac(&self, path: PathBuf) -> Result<File, Error> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
