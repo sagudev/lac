@@ -109,17 +109,25 @@ impl Processor {
         }
     }
 
-    /// Process FLac file
+    /// Process Flac file
     pub async fn process_flac(&self, path: PathBuf) -> Result<File, Error> {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
             return Ok(file);
         } else {
-            let waw = decode_file(&path)?;
-            let result = self.process(&waw)?;
-            fs::remove_file(waw).await?;
-            Ok(File { path, hash, result })
+            match decode_file(&path) {
+                Ok(waw) => {
+                    let result = self.process(&waw)?;
+                    fs::remove_file(waw).await?;
+                    Ok(File { path, hash, result })
+                }
+                Err(err) => {
+                    // delete wav on failure
+                    fs::remove_file(path.with_extension("wav")).await?;
+                    return Err(err);
+                }
+            }
         }
     }
 }

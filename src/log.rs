@@ -5,6 +5,31 @@ use std::fmt::Display;
 /// Boxed (std) Error trait that is thread safe (needs also Send and Sync trait)
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
+#[derive(Debug)]
+struct ErrorWithPath(String);
+
+impl std::fmt::Display for ErrorWithPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "There is an error: {}", self.0)
+    }
+}
+
+impl std::error::Error for ErrorWithPath {}
+unsafe impl Send for ErrorWithPath {}
+unsafe impl Sync for ErrorWithPath {}
+
+/// Appends path to error
+pub fn report(res: Result<File, Error>, path: PathBuf) -> Result<FnF, Error> {
+    match res {
+        Ok(x) => Ok(FnF::File(x)),
+        Err(err) => Err(Box::new(ErrorWithPath(format!(
+            "On file {} ERROR: {}",
+            path.to_str().unwrap(),
+            err
+        )))),
+    }
+}
+
 /// Results of a LAC
 #[derive(Clone, Debug)]
 pub enum Lac {

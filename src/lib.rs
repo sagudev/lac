@@ -12,6 +12,7 @@ use std::sync::Arc;
 use log::Log;
 use processor::Processor;
 
+use crate::log::report;
 use crate::log::FnF;
 use async_std::task;
 use futures::stream::FuturesUnordered;
@@ -79,14 +80,16 @@ async fn looper(procesor: Arc<RwLock<Processor>>, dir: PathBuf) -> Result<Log, E
                     let ext = ext.to_str().unwrap().to_ascii_lowercase();
                     match ext.as_str() {
                         "flac" => {
-                            return Ok(FnF::File(
-                                procesor.read().await.process_flac(path.path()).await?,
-                            ));
+                            return report(
+                                procesor.read().await.process_flac(path.path()).await,
+                                path.path(),
+                            );
                         }
                         "wav" => {
-                            return Ok(FnF::File(
-                                procesor.read().await.process_wav(path.path()).await?,
-                            ));
+                            return report(
+                                procesor.read().await.process_wav(path.path()).await,
+                                path.path(),
+                            );
                         }
                         _ => { /* Do nothing */ }
                     }
