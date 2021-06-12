@@ -52,6 +52,10 @@ jobs:
       if: startsWith(matrix.os, 'mac')
       run: brew install p7zip
 
+    - name: Install multilib (linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt install gcc-multilib -y
+
     - name: Build
       run: cargo build --release --target ${{ matrix.target }}
 
