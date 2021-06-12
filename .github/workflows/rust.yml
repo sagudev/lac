@@ -10,8 +10,15 @@ env:
 jobs:
   build:
 
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, ubuntu-latest]
+        include:
+        - os: ubuntu-latest
+          target: i686-unknown-linux-gnu
+        - os: windows-latest
+          target: i686-pc-windows-msvc
     steps:
     - uses: actions/checkout@v2
     - name: Install stable toolchain
@@ -20,6 +27,8 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
+        target: ${{ matrix.target }}
+        default: true
     - name: Build
       run: cargo build --verbose --release
     - name: Release
