@@ -85,13 +85,21 @@ jobs:
     - name: Upload Zip
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.os }}
+        name: ${{ matrix.target }}
         path: ./${{ env.RELEASE_DIR }}
 
   release:
     name: GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - target: x86_64-apple-darwin
+        - target: x86_64-unknown-linux-gnu
+        - target: i686-unknown-linux-gnu
+        - target: x86_64-pc-windows-msvc
+        - target: i686-pc-windows-msvc
     steps:
     - name: Query version number
       id: get_version
@@ -109,47 +117,17 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.VERSION }}
         release_name: ${{ steps.get_version.outputs.VERSION }}
 
-    - name: Download Linux tarball
+    - name: Download tarball
       uses: actions/download-artifact@v1
       with:
-        name: linux
+        name: ${{ matrix.target }}
 
-    - name: Download Windows tarball
-      uses: actions/download-artifact@v1
-      with:
-        name: windows
-
-    - name: Download MacOS tarball
-      uses: actions/download-artifact@v1
-      with:
-        name: macos
-
-    - name: Release Linux tarball
+    - name: Release tarball
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./linux/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
-        asset_content_type: application/gzip
-        asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
-
-    - name: Release Windows tarball
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
-        asset_content_type: application/gzip
-        asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
-
-    - name: Release MacOS tarball
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_path: ./${{ matrix.target }}/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
         asset_content_type: application/gzip
         asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
