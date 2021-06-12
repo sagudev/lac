@@ -17,7 +17,7 @@ fn hash(v: &[u8]) -> String {
 }
 
 /// https://github.com/ruuda/claxon/blob/master/examples/decode_simple.rs#L18
-fn decode_file(fname: &Path) -> PathBuf {
+fn decode_file(fname: &Path) -> Result<PathBuf, Error> {
     let mut reader = claxon::FlacReader::open(fname).expect("failed to open FLac stream");
 
     let spec = hound::WavSpec {
@@ -29,16 +29,14 @@ fn decode_file(fname: &Path) -> PathBuf {
 
     let fname_wav = fname.with_extension("wav");
     let opt_wav_writer = hound::WavWriter::create(&fname_wav, spec);
-    let mut wav_writer = opt_wav_writer.expect("failed to create wav file");
+    let mut wav_writer = opt_wav_writer?;
 
     for opt_sample in reader.samples() {
-        let sample = opt_sample.expect("failed to decode FLac stream");
-        wav_writer
-            .write_sample(sample)
-            .expect("failed to write wav file");
+        let sample = opt_sample?;
+        wav_writer.write_sample(sample)?;
     }
 
-    fname_wav
+    Ok(fname_wav)
 }
 
 #[derive(Debug)]
@@ -118,7 +116,7 @@ impl Processor {
         if let Some(file) = self.get_dupe(&path, &hash) {
             return Ok(file);
         } else {
-            let waw = decode_file(&path);
+            let waw = decode_file(&path)?;
             let result = self.process(&waw)?;
             fs::remove_file(waw).await?;
             Ok(File { path, hash, result })
