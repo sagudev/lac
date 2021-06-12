@@ -3,7 +3,7 @@ name: Rust
 on:
   push:
     tags-ignore:
-    - "v*"
+      - "v*"
   pull_request:
 
 env:
