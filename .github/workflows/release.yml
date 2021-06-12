@@ -53,7 +53,7 @@ jobs:
       run: brew install p7zip
 
     - name: Build
-      run: cargo build --release
+      run: cargo build --release --target ${{ matrix.target }}
 
     - name: Create artifact directory
       run: |
@@ -61,7 +61,7 @@ jobs:
         mkdir dist
 
     - name: Create tarball (Linux)
-      if: startsWith(matrix.os, 'linux')
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         mv ./target/${{ matrix.target }}/release/${{ env.RELEASE_BIN }} ./dist/${{ env.RELEASE_BIN }}
         mv ${{ env.RELEASE_ADDS }} ./dist
