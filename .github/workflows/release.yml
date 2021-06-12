@@ -6,12 +6,9 @@ on:
 name: Release
 
 env:
-  RELEASE_BIN: las
+  RELEASE_BIN: lac
   RELEASE_DIR: artifacts
   GITHUB_REF: "${{ github.ref }}"
-  WINDOWS_TARGET: x86_64-pc-windows-msvc
-  MACOS_TARGET: x86_64-apple-darwin
-  LINUX_TARGET: x86_64-unknown-linux-musl
 
   # Space separated paths to include in the archive.
   RELEASE_ADDS: README.md
@@ -91,11 +88,11 @@ jobs:
         name: ${{ matrix.build }}
         path: ./${{ env.RELEASE_DIR }}
 
-release:
-  name: GitHub Release
-  needs: build
-  runs-on: ubuntu-latest
-  steps:
+  release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
     - name: Query version number
       id: get_version
       shell: bash
