@@ -1,8 +1,8 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
+use async_std::fs;
+use async_std::path::Path;
+use async_std::path::PathBuf;
 
+use crate::log::Error;
 use crate::log::Log;
 use crate::log::{File, Lac};
 use sha2::Digest;
@@ -17,8 +17,8 @@ fn hash(v: &[u8]) -> String {
 }
 
 /// https://github.com/ruuda/claxon/blob/master/examples/decode_simple.rs#L18
-fn decode_file(fname: &Path) -> PathBuf {
-    let mut reader = claxon::FlacReader::open(fname).expect("failed to open FLac stream");
+fn decode_file(fname: &Path) -> Result<PathBuf, Error> {
+    let mut reader = claxon::FlacReader::open(fname)?;
 
     let spec = hound::WavSpec {
         channels: reader.streaminfo().channels as u16,
@@ -28,32 +28,31 @@ fn decode_file(fname: &Path) -> PathBuf {
     };
 
     let fname_wav = fname.with_extension("wav");
-    let opt_wav_writer = hound::WavWriter::create(&fname_wav, spec);
-    let mut wav_writer = opt_wav_writer.expect("failed to create wav file");
+    let opt_wav_writer = hound::WavWriter::create(&fname_wav, spec)?;
+    let mut wav_writer = opt_wav_writer;
 
     for opt_sample in reader.samples() {
-        let sample = opt_sample.expect("failed to decode FLac stream");
-        wav_writer
-            .write_sample(sample)
-            .expect("failed to write wav file");
+        let sample = opt_sample?;
+        wav_writer.write_sample(sample)?;
     }
 
-    fname_wav
+    Ok(fname_wav)
 }
 
 #[derive(Debug)]
 pub struct Processor {
     old_log: Option<Log>,
-    pub log: Log,
     bin: PathBuf,
+    /// Storage for header as it has same lifetime
+    pub header: String,
 }
 
 impl Processor {
-    pub fn new(bin: PathBuf) -> Self {
+    pub fn new(bin: PathBuf, header: String) -> Self {
         Self {
             old_log: None,
-            log: Log::new(),
             bin,
+            header,
         }
     }
 
@@ -65,26 +64,24 @@ impl Processor {
         }
     }
 
-    /// checks if recalc is neede based on hash
-    /// make dupe of old in new
-    fn recalc_dupe(&mut self, path: &Path, hash: &str) -> bool {
+    /// checks if we alredy have data and return it (if)
+    fn get_dupe(&self, path: &Path, hash: &str) -> Option<File> {
         if let Some(old) = &self.old_log {
             let k = path.parent().unwrap();
             if old.data.contains_key(k) {
                 for f in old.data.get(k).unwrap() {
                     if f.path == *path && f.hash == *hash {
                         // data is the same, copy
-                        self.log.insert_or_update(f.clone());
-                        return false;
+                        return Some(f.clone());
                     }
                 }
             }
         }
-        true
+        None
     }
 
     /// Runs Lac and parse result
-    fn process(&self, path: &Path) -> Result<Result<Lac, String>, Box<dyn Error>> {
+    fn process(&self, path: &Path) -> Result<Result<Lac, String>, Error> {
         let out = std::process::Command::new(&self.bin).arg(path).output()?;
         let output = String::from_utf8_lossy(&out.stdout).to_ascii_lowercase();
         if output.contains("clean") {
@@ -101,26 +98,36 @@ impl Processor {
     }
 
     /// Process WAV file
-    pub fn process_wav(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
-        let f = fs::read(&path)?;
+    pub async fn process_wav(&self, path: PathBuf) -> Result<File, Error> {
+        let f = fs::read(&path).await?;
         let hash = hash(&f);
-        if self.recalc_dupe(&path, &hash) {
+        if let Some(file) = self.get_dupe(&path, &hash) {
+            return Ok(file);
+        } else {
             let result = self.process(&path)?;
-            self.log.insert_or_update(File { path, hash, result })
+            Ok(File { path, hash, result })
         }
-        Ok(())
     }
 
-    /// Process FLac file
-    pub fn process_flac(&mut self, path: PathBuf) -> Result<(), Box<dyn Error>> {
-        let f = fs::read(&path)?;
+    /// Process Flac file
+    pub async fn process_flac(&self, path: PathBuf) -> Result<File, Error> {
+        let f = fs::read(&path).await?;
         let hash = hash(&f);
-        if self.recalc_dupe(&path, &hash) {
-            let waw = decode_file(&path);
-            let result = self.process(&waw)?;
-            fs::remove_file(waw)?;
-            self.log.insert_or_update(File { path, hash, result })
+        if let Some(file) = self.get_dupe(&path, &hash) {
+            return Ok(file);
+        } else {
+            match decode_file(&path) {
+                Ok(waw) => {
+                    let result = self.process(&waw)?;
+                    fs::remove_file(waw).await?;
+                    Ok(File { path, hash, result })
+                }
+                Err(err) => {
+                    // delete wav on failure
+                    fs::remove_file(path.with_extension("wav")).await?;
+                    return Err(err);
+                }
+            }
         }
-        Ok(())
     }
 }

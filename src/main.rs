@@ -1,7 +1,8 @@
+use async_std::path::PathBuf;
+use async_std::task;
+use lac::Error;
 use lac::{mach, make_bin, remove_bin};
 use std::env;
-use std::error::Error;
-use std::path::PathBuf;
 
 use argh::FromArgs;
 
@@ -9,23 +10,35 @@ use argh::FromArgs;
 /// A command with positional arguments.
 struct Args {
     /// file path
-    #[argh(positional, default = "env::current_dir().unwrap()")]
+    #[argh(
+        positional,
+        default = "PathBuf::from(env::current_dir().unwrap().to_str().unwrap())"
+    )]
     path: PathBuf,
 
     /// number of jobs
-    #[argh(option, short = 'j', default = "num_cpus::get() - 2")]
+    #[argh(option, short = 'j', default = "num_cpus::get() / 4")]
     jobs: usize,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let args: Args = argh::from_env();
-    let bin = make_bin(args.jobs)?;
+//#[async_std::main]
+async fn amain(args: Args) -> Result<(), Error> {
+    let bin = make_bin(args.jobs).await?;
     // if path is file run real Lac
-    if args.path.is_file() {
-        std::process::Command::new(bin).arg(args.path).spawn()?;
+    if args.path.is_file().await {
+        async_std::process::Command::new(bin)
+            .arg(args.path)
+            .spawn()?;
     } else {
-        mach(args.path, args.jobs, &bin)?;
+        mach(args.path, &bin).await?;
     }
-    remove_bin()?;
+    remove_bin().await?;
     Ok(())
+}
+
+fn main() -> Result<(), Error> {
+    let args: Args = argh::from_env();
+    // cores needs to be set before
+    std::env::set_var("ASYNC_STD_THREAD_COUNT", args.jobs.to_string());
+    task::block_on(amain(args))
 }
