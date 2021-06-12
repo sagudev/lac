@@ -19,6 +19,10 @@ struct Args {
     /// number of jobs
     #[argh(option, short = 'j', default = "num_cpus::get() / 4")]
     jobs: usize,
+
+    /// number of jobs
+    #[argh(switch, short = 'f')]
+    force: bool,
 }
 
 //#[async_std::main]
@@ -30,7 +34,7 @@ async fn amain(args: Args) -> Result<(), Error> {
             .arg(args.path)
             .spawn()?;
     } else {
-        mach(args.path, &bin).await?;
+        mach(args.path, args.force, &bin).await?;
     }
     remove_bin().await?;
     Ok(())

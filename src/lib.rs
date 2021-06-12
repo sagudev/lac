@@ -51,12 +51,12 @@ pub async fn remove_bin() -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Error> {
+pub async fn mach(dir: PathBuf, force: bool, bin: &Path) -> Result<(), Error> {
     let procesor = Arc::new(RwLock::new(Processor::new(
         bin.to_owned(),
         get_header(&bin).await?,
     )));
-    looper(procesor, dir).await?;
+    looper(procesor, force, dir).await?;
     Ok(())
 }
 
@@ -64,9 +64,11 @@ pub async fn mach(dir: PathBuf, bin: &Path) -> Result<(), Error> {
 // firstly we need to read logs if they exist
 // then recalc hashes
 #[async_recursion::async_recursion]
-async fn looper(procesor: Arc<RwLock<Processor>>, dir: PathBuf) -> Result<Log, Error> {
-    if let Ok(ff) = fs::read(dir.join("LAC.log")).await {
-        procesor.write().await.append_old(Log::from(&ff)?)
+async fn looper(procesor: Arc<RwLock<Processor>>, force: bool, dir: PathBuf) -> Result<Log, Error> {
+    if !force {
+        if let Ok(ff) = fs::read(dir.join("LAC.log")).await {
+            procesor.write().await.append_old(Log::from(&ff)?)
+        }
     }
     let mut log = Log::new();
     let mut tasks = FuturesUnordered::new();
@@ -95,7 +97,7 @@ async fn looper(procesor: Arc<RwLock<Processor>>, dir: PathBuf) -> Result<Log, E
                     }
                 }
             } else {
-                return Ok(FnF::Folder(looper(procesor, path.path()).await?));
+                return Ok(FnF::Folder(looper(procesor, force, path.path()).await?));
             }
             Ok::<FnF, Error>(FnF::None)
         }));
