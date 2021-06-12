@@ -96,14 +96,6 @@ jobs:
     name: GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-        - target: x86_64-apple-darwin
-        - target: x86_64-unknown-linux-gnu
-        - target: i686-unknown-linux-gnu
-        - target: x86_64-pc-windows-msvc
-        - target: i686-pc-windows-msvc
     steps:
     - name: Query version number
       id: get_version
@@ -124,7 +116,27 @@ jobs:
     - name: Download tarball
       uses: actions/download-artifact@v1
       with:
-        name: ${{ matrix.target }}
+        name: x86_64-apple-darwin
+
+    - name: Download tarball
+      uses: actions/download-artifact@v1
+      with:
+        name: x86_64-unknown-linux-gnu
+
+    - name: Download tarball
+      uses: actions/download-artifact@v1
+      with:
+        name: i686-unknown-linux-gnu
+
+    - name: Download tarball
+      uses: actions/download-artifact@v1
+      with:
+        name: x86_64-pc-windows-msvc
+
+    - name: Download tarball
+      uses: actions/download-artifact@v1
+      with:
+        name: i686-pc-windows-msvc
 
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -132,4 +144,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        files: ./${{ matrix.target }}/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        files: |
+          ./x86_64-apple-darwin/lac-${{ steps.get_version.outputs.VERSION }}-x86_64-apple-darwin.tar.gz
+          ./x86_64-unknown-linux-gnu/lac-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-gnu.tar.gz
+          ./i686-unknown-linux-gnu/lac-${{ steps.get_version.outputs.VERSION }}-i686-unknown-linux-gnu.tar.gz
+          ./x86_64-pc-windows-msvc/lac-${{ steps.get_version.outputs.VERSION }}-x86_64-pc-windows-msvc.tar.gz
+          ./i686-pc-windows-msvc/lac-${{ steps.get_version.outputs.VERSION }}-i686-pc-windows-msvc.tar.gz
