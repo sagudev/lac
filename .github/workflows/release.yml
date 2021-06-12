@@ -49,7 +49,7 @@ jobs:
         echo ::set-output name=version::"${GITHUB_REF:10}"
 
     - name: Install p7zip (MacOS)
-      if: startsWith(matrix.build, 'mac')
+      if: startsWith(matrix.os, 'mac')
       run: brew install p7zip
 
     - name: Build
