@@ -130,9 +130,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./linux/wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_path: ./linux/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
         asset_content_type: application/gzip
-        asset_name: wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
 
     - name: Release Windows tarball
       uses: actions/upload-release-asset@v1
@@ -140,9 +140,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows/wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_path: ./windows/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
         asset_content_type: application/gzip
-        asset_name: wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
 
     - name: Release MacOS tarball
       uses: actions/upload-release-asset@v1
@@ -150,6 +150,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos/wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_path: ./macos/lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
         asset_content_type: application/gzip
-        asset_name: wrangler-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
+        asset_name: lac-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
