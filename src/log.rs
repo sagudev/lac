@@ -1,6 +1,11 @@
 use async_std::path::PathBuf;
 use std::collections::HashMap;
+// Display is for printing to user
+// Debug is for printing to file
+use std::fmt::Debug;
 use std::fmt::Display;
+
+use colored::*;
 
 /// Boxed (std) Error trait that is thread safe (needs also Send and Sync trait)
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -31,7 +36,7 @@ pub fn report(res: Result<File, Error>, path: PathBuf) -> Result<FnF, Error> {
 }
 
 /// Results of a LAC
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq)]
 pub enum Lac {
     Clean,
     Transcoded,
@@ -39,7 +44,20 @@ pub enum Lac {
     Upsampled,
 }
 
+/// Print to display
 impl Display for Lac {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Lac::Clean => write!(f, "{}", "Clean".bright_green()),
+            Lac::Transcoded => write!(f, "{}", "Transcoded".bright_yellow()),
+            Lac::Upscaled => write!(f, "{}", "Upscaled".bright_yellow()),
+            Lac::Upsampled => write!(f, "{}", "Upsampled".bright_yellow()),
+        }
+    }
+}
+
+/// Print to file
+impl Debug for Lac {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Lac::Clean => write!(f, "Clean"),
@@ -70,7 +88,7 @@ impl core::str::FromStr for Lac {
 }
 
 /// Represents one file entery in log
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct File {
     /// Path to file
     pub path: PathBuf,
@@ -114,9 +132,17 @@ impl Display for File {
     }
 }
 
+impl Debug for File {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "File:   {}", self.path.to_str().unwrap())?;
+        writeln!(f, "Hash:   {}", self.hash)?;
+        writeln!(f, "Result: {:?}", self.result.as_ref().unwrap())
+    }
+}
+
 /// Represents log
 /// WARNING: Header!!!
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Log {
     /// folder: vec of FILEs
     pub data: HashMap<PathBuf, Vec<File>>,
@@ -127,6 +153,17 @@ impl Display for Log {
         for v in self.data.values() {
             for file in v {
                 writeln!(f, "{}", file)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Debug for Log {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for v in self.data.values() {
+            for file in v {
+                writeln!(f, "{:?}", file)?;
             }
         }
         Ok(())
@@ -169,6 +206,14 @@ impl Log {
             }
         }
         log
+    }
+
+    pub fn vectorize(&self) -> Vec<File> {
+        let mut v = Vec::new();
+        for vv in self.data.values() {
+            v.extend(vv.clone())
+        }
+        v
     }
 
     pub fn from(v: &[u8]) -> Result<Self, Error> {

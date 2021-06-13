@@ -20,9 +20,13 @@ struct Args {
     #[argh(option, short = 'j', default = "num_cpus::get() / 4")]
     jobs: usize,
 
-    /// number of jobs
+    /// force recheck
     #[argh(switch, short = 'f')]
     force: bool,
+
+    /// do not print nonclean files
+    #[argh(switch, short = 'n')]
+    no_print: bool,
 }
 
 //#[async_std::main]
@@ -34,7 +38,7 @@ async fn amain(args: Args) -> Result<(), Error> {
             .arg(args.path)
             .spawn()?;
     } else {
-        mach(args.path, args.force, &bin).await?;
+        mach(args.path, args.force, args.no_print, &bin).await?;
     }
     remove_bin().await?;
     Ok(())

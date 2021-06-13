@@ -7,6 +7,7 @@ use async_std::path::PathBuf;
 use async_std::prelude::*;
 use async_std::sync::RwLock;
 pub use log::Error;
+use log::Lac;
 use std::sync::Arc;
 
 use log::Log;
@@ -51,12 +52,21 @@ pub async fn remove_bin() -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn mach(dir: PathBuf, force: bool, bin: &Path) -> Result<(), Error> {
+pub async fn mach(dir: PathBuf, force: bool, no_print: bool, bin: &Path) -> Result<(), Error> {
     let procesor = Arc::new(RwLock::new(Processor::new(
         bin.to_owned(),
         get_header(&bin).await?,
     )));
-    looper(procesor, force, dir).await?;
+    let log = looper(procesor, force, dir).await?;
+    if !no_print {
+        for file in log.vectorize() {
+            if let Ok(f) = file.result {
+                if f != Lac::Clean {
+                    println!("{}", f);
+                }
+            }
+        }
+    }
     Ok(())
 }
 
@@ -115,7 +125,7 @@ async fn looper(procesor: Arc<RwLock<Processor>>, force: bool, dir: PathBuf) -> 
     fs::write(
         dir.join("LAC.log"),
         format!(
-            "{}\n\n{}",
+            "{}\n\n{:?}",
             procesor.read().await.header,
             log.relevant(dir.to_str().unwrap())
         ),
