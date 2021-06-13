@@ -126,9 +126,12 @@ impl File {
 
 impl Display for File {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "File:   {}", self.path.to_str().unwrap())?;
-        writeln!(f, "Hash:   {}", self.hash)?;
-        writeln!(f, "Result: {}", self.result.as_ref().unwrap())
+        writeln!(
+            f,
+            "File {} is {}",
+            self.path.to_str().unwrap(),
+            self.result.as_ref().unwrap()
+        )
     }
 }
 
@@ -146,17 +149,6 @@ impl Debug for File {
 pub struct Log {
     /// folder: vec of FILEs
     pub data: HashMap<PathBuf, Vec<File>>,
-}
-
-impl Display for Log {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for v in self.data.values() {
-            for file in v {
-                writeln!(f, "{}", file)?;
-            }
-        }
-        Ok(())
-    }
 }
 
 impl Debug for Log {

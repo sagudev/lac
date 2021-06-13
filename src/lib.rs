@@ -60,9 +60,9 @@ pub async fn mach(dir: PathBuf, force: bool, no_print: bool, bin: &Path) -> Resu
     let log = looper(procesor, force, dir).await?;
     if !no_print {
         for file in log.vectorize() {
-            if let Ok(f) = file.result {
-                if f != Lac::Clean {
-                    println!("{}", f);
+            if let Ok(f) = &file.result {
+                if *f != Lac::Clean {
+                    println!("{}", file);
                 }
             }
         }
