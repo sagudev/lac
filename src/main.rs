@@ -7,7 +7,7 @@ use std::env;
 use argh::FromArgs;
 
 #[derive(FromArgs, PartialEq, Debug)]
-/// A command with positional arguments.
+/// Lossless Audio Checker Wrapper
 struct Args {
     /// file path
     #[argh(
@@ -17,7 +17,7 @@ struct Args {
     path: PathBuf,
 
     /// number of jobs
-    #[argh(option, short = 'j', default = "num_cpus::get() / 4")]
+    #[argh(option, short = 'j', default = "(num_cpus::get() + 3) / 4")]
     jobs: usize,
 
     /// force recheck
@@ -46,7 +46,15 @@ async fn amain(args: Args) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     let args: Args = argh::from_env();
-    // cores needs to be set before
-    std::env::set_var("ASYNC_STD_THREAD_COUNT", args.jobs.to_string());
+    // SECRET EGG
+    // if jobs==0 then jobs=cpu_cores_count
+    // if !jobs then jobs=(num_cpus::get() + 3) / 4
+    let jobs = if args.jobs == 0 {
+        num_cpus::get()
+    } else {
+        args.jobs
+    }
+    // cores needs to be set before async
+    std::env::set_var("ASYNC_STD_THREAD_COUNT", jobs.to_string());
     task::block_on(amain(args))
 }
