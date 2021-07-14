@@ -53,7 +53,7 @@ fn main() -> Result<(), Error> {
         num_cpus::get()
     } else {
         args.jobs
-    }
+    };
     // cores needs to be set before async
     std::env::set_var("ASYNC_STD_THREAD_COUNT", jobs.to_string());
     task::block_on(amain(args))
