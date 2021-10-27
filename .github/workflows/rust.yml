@@ -20,6 +20,6 @@ jobs:
         override: true
         default: true
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --bin lac --features="bin" --verbose
     - name: Run tests
       run: cargo test --verbose

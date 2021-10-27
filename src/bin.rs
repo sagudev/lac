@@ -1,4 +1,4 @@
-//! This file includes right offical LAC binary in this wrapper
+//! This file includes offical LAC binary in this wrapper
 
 #[cfg(all(target_os = "linux", target_arch = "x86"))]
 pub const BIN_FILE: &[u8] = include_bytes!("../bin/l32/LAC");

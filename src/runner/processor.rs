@@ -2,9 +2,10 @@ use async_std::fs;
 use async_std::path::Path;
 use async_std::path::PathBuf;
 
-use crate::log::Error;
-use crate::log::Log;
-use crate::log::{File, Lac};
+use crate::runner::log::File;
+use crate::runner::Error;
+use crate::runner::Log;
+use lac::Lac;
 use sha2::Digest;
 
 /// Crates hash of file
@@ -102,7 +103,7 @@ impl Processor {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
-            return Ok(file);
+            Ok(file)
         } else {
             let result = self.process(&path)?;
             Ok(File { path, hash, result })
@@ -114,7 +115,7 @@ impl Processor {
         let f = fs::read(&path).await?;
         let hash = hash(&f);
         if let Some(file) = self.get_dupe(&path, &hash) {
-            return Ok(file);
+            Ok(file)
         } else {
             match decode_file(&path) {
                 Ok(waw) => {
@@ -125,7 +126,7 @@ impl Processor {
                 Err(err) => {
                     // delete wav on failure
                     fs::remove_file(path.with_extension("wav")).await?;
-                    return Err(err);
+                    Err(err)
                 }
             }
         }

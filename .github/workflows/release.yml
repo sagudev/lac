@@ -57,7 +57,7 @@ jobs:
       run: sudo apt install gcc-multilib -y
 
     - name: Build
-      run: cargo build --release --target ${{ matrix.target }}
+      run: cargo build --bin lac --features="bin" --release --target ${{ matrix.target }}
 
     - name: Create artifact directory
       run: |

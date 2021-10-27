@@ -1,22 +1,31 @@
 [package]
 name = "lac"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["samo"]
-edition = "2018"
+edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "lac"
+
+[features]
+bin = ["async-std", "sha2", "hex", "hound", "claxon", "argh", "num_cpus", "async-recursion", "futures"]
+
+[[bin]]         
+name = "lac"
+path = "src/main.rs"
+required-features = ["bin"]
 
 [dependencies]
-sha2 = "0.9"
-hex = "0.4"
-hound = "3.4"
-claxon = "0.4"
-argh = "0.1"
-num_cpus = "1.13"
-async-recursion = "0.3"
-futures = "0.3"
-colored = "2.0"
+sha2 = { version = "0.9", optional = true }
+hex = { version = "0.4", optional = true }
+hound = { version = "3.4", optional = true }
+claxon = { version = "0.4", optional = true }
+argh = { version = "0.1", optional = true }
+num_cpus = { version = "1.13", optional = true }
+async-recursion = { version = "0.3", optional = true }
+futures = { version = "0.3", optional = true }
 
 [dependencies.async-std]
+optional = true
 version = "1.9"
 features = ["attributes", "unstable"]

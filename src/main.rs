@@ -1,7 +1,8 @@
 use async_std::path::PathBuf;
 use async_std::task;
-use lac::Error;
-use lac::{mach, make_bin, remove_bin};
+mod runner;
+use runner::Error;
+use runner::{mach, make_bin, remove_bin};
 use std::env;
 
 use argh::FromArgs;

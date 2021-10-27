@@ -5,8 +5,6 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Display;
 
-use colored::*;
-
 /// Boxed (std) Error trait that is thread safe (needs also Send and Sync trait)
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -35,58 +33,6 @@ pub fn report(res: Result<File, Error>, path: PathBuf) -> Result<FnF, Error> {
     }
 }
 
-/// Results of a LAC
-#[derive(Clone, PartialEq)]
-pub enum Lac {
-    Clean,
-    Transcoded,
-    Upscaled,
-    Upsampled,
-}
-
-/// Print to display
-impl Display for Lac {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Lac::Clean => write!(f, "{}", "Clean".bright_green()),
-            Lac::Transcoded => write!(f, "{}", "Transcoded".bright_yellow()),
-            Lac::Upscaled => write!(f, "{}", "Upscaled".bright_yellow()),
-            Lac::Upsampled => write!(f, "{}", "Upsampled".bright_yellow()),
-        }
-    }
-}
-
-/// Print to file
-impl Debug for Lac {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Lac::Clean => write!(f, "Clean"),
-            Lac::Transcoded => write!(f, "Transcoded"),
-            Lac::Upscaled => write!(f, "Upscaled"),
-            Lac::Upsampled => write!(f, "Upsampled"),
-        }
-    }
-}
-
-impl core::str::FromStr for Lac {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.to_ascii_lowercase();
-        if s.contains("clean") {
-            Ok(Lac::Clean)
-        } else if s.contains("transcoded") {
-            Ok(Lac::Transcoded)
-        } else if s.contains("upscaled") {
-            Ok(Lac::Upscaled)
-        } else if s.contains("upsampled") {
-            Ok(Lac::Upsampled)
-        } else {
-            Err(())
-        }
-    }
-}
-
 /// Represents one file entery in log
 #[derive(Clone)]
 pub struct File {
@@ -95,7 +41,7 @@ pub struct File {
     /// SHA256 hash of file
     pub hash: String,
     /// Result of check or Err(output of program)
-    pub result: Result<Lac, String>,
+    pub result: Result<lac::Lac, String>,
 }
 
 impl File {
